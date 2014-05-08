@@ -10,7 +10,7 @@ public class Stock {
   public float lastPrice, open, high, low, close, change, changeInPer, rsi, MACDfast, MACDslow, MA200, MA50, EMA8, EMA12, EMA20;
   public int volumen, avgVolumen;  
   
-  float[] pastPrices = new float[20];
+  float[] pastPrices = new float[30];
   float[] emas = new float[3];
   
   //These instance variables describes the target for the indicators
@@ -30,7 +30,7 @@ public class Stock {
     
     symbol = StockSymbol;
     
-    String date = "2014-04-06";
+    String date = "2014-03-20";
     
     String url = "https://query.yahooapis.com/v1/public/yql?q=SELECT%20*%20FROM%20yql.query.multi%20WHERE%20queries%3D%27%0A%20%20%20%20" +
 		 "SELECT%20*%20FROM%20csv%20WHERE%20url%3D%22http%3A%2F%2Fdownload.finance.yahoo.com%2Fd%2Fquotes.csv%3Fs%3D" + symbol + 
@@ -112,55 +112,81 @@ public class Stock {
       endIndex = webDataTemp.indexOf("</MA50>", startIndex);
       MA50 = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
       
-      for(int i = 0; i < 20; i++) {
+      
+      // Her ligger vi de tidligere dages priser ind, 20 dages data
+      for(int i = 0; i < 30; i++) {
 	startIndex = webDataTemp.indexOf("<Close>", endIndex);
 	endIndex = webDataTemp.indexOf("</Close>", startIndex);
-	pastPrices[i] = Float.parseFloat(webDataTemp.substring(startIndex + 8,endIndex));
+	pastPrices[i] = Float.parseFloat(webDataTemp.substring(startIndex + 7,endIndex));
       }
       
-      System.out.print(pastPrices);
       //Here we calculate the RSI and put it into the instance variable
       rsi = rsiCalculate(pastPrices);
-      
+      System.out.println(rsi);
       // Here we call the function to calculate the EMA's and return an array
-       emas = emaCalculate(pastPrices);
-       EMA8 = emas[0];
-       EMA12 = emas[1];
-       EMA20 = emas[2];
+      emas = emaCalculate(pastPrices);
+      EMA8 = emas[0];
+      EMA12 = emas[1];
+      EMA20 = emas[2];
+       
+
     }
     
     public float rsiCalculate(float[] pastPrices) {
       float RSI = 0;
       float loss = 0;
-	  float gain = 0;
+      float gain = 0;
 	  
-      int c = 19, i = 18, counter = 1;
+      int c = 14, i = 13, counter = 1;
+      
+      for(int d = 0; d < 20; d++) {
+	System.out.println(pastPrices[d]);
+      }
       
       while(counter < 15) {
       
-	if(pastPrices[c] < pastPrices[i]) {
-	  loss = loss + pastPrices[c];
+	if(pastPrices[i] < pastPrices[c]) {
+	  loss = loss + (pastPrices[c] - pastPrices[i]);
 	}
 	
-	if(pastPrices[c] > pastPrices[i]) {
-	  gain = gain + pastPrices[c];
-	}
 	
+	if(pastPrices[i] > pastPrices[c]) {
+	  gain = gain + (pastPrices[i] - pastPrices[c]);
+	}
 	counter++;
 	c--;
 	i--;
       }
+      System.out.println(loss);
+      System.out.println(gain);
+      loss = loss/14;
+      gain = gain/14;
+      
+      float todayGain = 0;
+      float todayLoss = 0;
+      
+      if(lastPrice < pastPrices[0]) {
+	todayLoss = pastPrices[0] - lastPrice;
+      }
+      
+      if(lastPrice > pastPrices[0]) {
+	todayGain = lastPrice - pastPrices[0];
+      }
       
       float RS = gain / loss;
       
-      RSI = 100 / 1 + RS;
+      System.out.println(c);
+      
+      float smooth = (((gain * 13) + todayGain) / 14) / (((loss * 13) + todayLoss) / 14);
+      
+      RSI = 100 - (100 / (1 + smooth));
       
       return RSI;
     }
     
     public float[] emaCalculate(float[] pastPrices) {
     
-      int c = 0;
+      int c = 14;
       float s8 = 0;
 	  float s12 = 0;
 	  float s20 = 0;
@@ -172,54 +198,61 @@ public class Stock {
 	  float multiplier20 = 0;
       float[] emas = new float[3];
       
-      while(c < 8) {
-	s8 = s8 + pastPrices[11 + c];
-	c++;
+      while(c > 6) {
+	s8 = s8 + pastPrices[c];
+	c--;
       }
       s8 = s8 / 8;
+
       c = 0;
-      
+
       while(c < 12) {
-	s12 = s12 + pastPrices[7 + c];
+	s12 = s12 + pastPrices[19 - c];
 	c++;
       }
       s12 = s12 / 12;
       c = 0;
-      
+
       while(c < 20) {
-	s20 = s20 + pastPrices[c];
+	s20 = s20 + pastPrices[27 - c];
 	c++;
       }
       s20 = s20 / 20;
-      
+
       multiplier8 = (2 / (8 + 1) );
       multiplier12 = (2 / (12 + 1));
       multiplier20 = (2 / (20 + 1));
       
-      ema8 = (pastPrices[12] - s8) * multiplier8 + s8;
-      c = 1;
-      
-      while(c < 8) {
-	ema8 = (pastPrices[12 + c] - ema8) * multiplier8 + ema8;
+      ema8 = s8;
+      c = 7;
+
+      while(c >= 0) {
+	ema8 = (pastPrices[c] - ema8) * multiplier8 + ema8;
+	c--;
+	System.out.println("EMA 8 =" + ema8);
       }
-      emas[0] = ema8;
+
+      emas[0] = (lastPrice - ema8) * multiplier8 + ema8;
+
+      c = 12;
+      ema12 = s12;
       
-      c = 1;
-      ema12 = (pastPrices[7] - s12) * multiplier12 + s12;
-      
-      while(c < 12) {
-	ema12 = (pastPrices[7 + c] - ema12) * multiplier12 + ema12;
+      while(c >= 0) {
+	ema12 = (pastPrices[c] - ema12) * multiplier12 + ema12;
+	c--;
       }
-      emas[1] = ema12;
       
-      c = 1;
-      ema20 = (pastPrices[0] - s20) * multiplier20 + s20;
+      emas[1] = (lastPrice - ema12) * multiplier12 + ema12;
       
-      while(c < 20) {
-	ema20 = (pastPrices[0 + c] - ema20) * multiplier20 + ema20;
+      c = 0;
+      ema20 = s20;
+      
+      while(c >= 19) {
+	ema20 = (pastPrices[c] - ema20) * multiplier20 + ema20;
+	c--;
       }
-      emas[2] = ema20;
-      
+      emas[2] = (lastPrice - ema20) * multiplier20 + ema20;
+
       return emas;
     }
     

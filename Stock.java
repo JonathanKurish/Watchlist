@@ -24,14 +24,13 @@ public class Stock {
   public boolean highVolume;  // If this value is TRUE the user wants to be notified when volume is high
   
   public String webData;
-  
+  public String webDataTemp;
   
   public Stock(String StockSymbol) throws IOException {
-  
     
     symbol = StockSymbol;
     
-    String date = "2014-04-13";
+    String date = "2014-04-06";
     
     String url = "https://query.yahooapis.com/v1/public/yql?q=SELECT%20*%20FROM%20yql.query.multi%20WHERE%20queries%3D%27%0A%20%20%20%20" +
 		 "SELECT%20*%20FROM%20csv%20WHERE%20url%3D%22http%3A%2F%2Fdownload.finance.yahoo.com%2Fd%2Fquotes.csv%3Fs%3D" + symbol + 
@@ -43,11 +42,14 @@ public class Stock {
       URL pageLocation = new URL(url);
       
       Scanner input = new Scanner(pageLocation.openStream());
-      String webData = input.nextLine() + "\n";
+      webData = input.nextLine() + "\n";
       
       while(input.hasNextLine()) {
 	webData +=  input.nextLine() + "\n";
       }
+      
+      webDataTemp = webData;
+      
     }
       
     catch(MalformedURLException e) { 
@@ -57,62 +59,74 @@ public class Stock {
       int startIndex, endIndex; // Here we initialize the two int variables to be used to get the data 
       
       // Here we grab the lastest price from the xml
-      startIndex = webData.indexOf("<lastPrice>");
-      endIndex = webData.indexOf("</lastPrice>", startIndex);
-      lastPrice = Float.parseFloat(webData.substring(startIndex + 11,endIndex));
+      startIndex = webDataTemp.indexOf("<lastPrice>");
+      endIndex = webDataTemp.indexOf("</lastPrice>", startIndex);
+      lastPrice = Float.parseFloat(webDataTemp.substring(startIndex + 11,endIndex));
       
       if(lastPrice == 0.00) {
 	/* Udvikle error da aktien ikke findes */
       }
-
+      
       // Here we grab the open price from the xml
-      startIndex = webData.indexOf("<open>");
-      endIndex = webData.indexOf("</open>", startIndex);
-      open = Float.parseFloat(webData.substring(startIndex + 6,endIndex));
+      startIndex = webDataTemp.indexOf("<open>");
+      endIndex = webDataTemp.indexOf("</open>", startIndex);
+      open = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
       
       // Here we grab the High price of the day from the xml
-      startIndex = webData.indexOf("<high>");
-      endIndex = webData.indexOf("</high>", startIndex);
-      high = Float.parseFloat(webData.substring(startIndex + 6,endIndex));
+      startIndex = webDataTemp.indexOf("<high>");
+      endIndex = webDataTemp.indexOf("</high>", startIndex);
+      high = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
       
       // Here we grab the Low price of the day from the xml
-      startIndex = webData.indexOf("<low>");
-      endIndex = webData.indexOf("</low>", startIndex);
-      low = Float.parseFloat(webData.substring(startIndex + 5,endIndex));
+      startIndex = webDataTemp.indexOf("<low>");
+      endIndex = webDataTemp.indexOf("</low>", startIndex);
+      low = Float.parseFloat(webDataTemp.substring(startIndex + 5,endIndex));
       
       // Here we grab the volume
-      startIndex = webData.indexOf("<volumen>");
-      endIndex = webData.indexOf("</volumen>", startIndex);
-      volumen = Integer.parseInt(webData.substring(startIndex + 9,endIndex));
+      startIndex = webDataTemp.indexOf("<volumen>");
+      endIndex = webDataTemp.indexOf("</volumen>", startIndex);
+      volumen = Integer.parseInt(webDataTemp.substring(startIndex + 9,endIndex));
       
       // Here we grab the average volume
-      startIndex = webData.indexOf("<avgVolumen>");
-      endIndex = webData.indexOf("</avgVolumen>", startIndex);
-      avgVolumen = Integer.parseInt(webData.substring(startIndex + 12,endIndex));
+      startIndex = webDataTemp.indexOf("<avgVolumen>");
+      endIndex = webDataTemp.indexOf("</avgVolumen>", startIndex);
+      avgVolumen = Integer.parseInt(webDataTemp.substring(startIndex + 12,endIndex));
       
       // Here we grab the change of price
-      startIndex = webData.indexOf("<change>");
-      endIndex = webData.indexOf("</change>", startIndex);
-      change = Float.parseFloat(webData.substring(startIndex + 8,endIndex));
+      startIndex = webDataTemp.indexOf("<change>");
+      endIndex = webDataTemp.indexOf("</change>", startIndex);
+      change = Float.parseFloat(webDataTemp.substring(startIndex + 8,endIndex));
       
       // Here we grab the change of price in percent
-      startIndex = webData.indexOf("<changePer>");
-      endIndex = webData.indexOf("</changePer>", startIndex);
-      changeInPer = Float.parseFloat(webData.substring(startIndex + 11,endIndex - 1));
+      startIndex = webDataTemp.indexOf("<changePer>");
+      endIndex = webDataTemp.indexOf("</changePer>", startIndex);
+      changeInPer = Float.parseFloat(webDataTemp.substring(startIndex + 11,endIndex - 1));
       
       // Here we grab the 200 Moving Average
-      startIndex = webData.indexOf("<MA200>");
-      endIndex = webData.indexOf("</MA200>", startIndex);
-      MA200 = Float.parseFloat(webData.substring(startIndex + 7,endIndex));
+      startIndex = webDataTemp.indexOf("<MA200>");
+      endIndex = webDataTemp.indexOf("</MA200>", startIndex);
+      MA200 = Float.parseFloat(webDataTemp.substring(startIndex + 7,endIndex));
       
       // Here we grab the 200 Moving Average
-      startIndex = webData.indexOf("<MA50>");
-      endIndex = webData.indexOf("</MA50>", startIndex);
-      MA50 = Float.parseFloat(webData.substring(startIndex + 6,endIndex));
+      startIndex = webDataTemp.indexOf("<MA50>");
+      endIndex = webDataTemp.indexOf("</MA50>", startIndex);
+      MA50 = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
       
+      for(int i = 0; i < 20; i++) {
+	startIndex = webDataTemp.indexOf("<Close>", endIndex);
+	endIndex = webDataTemp.indexOf("</Close>", startIndex);
+	pastPrices[i] = Float.parseFloat(webDataTemp.substring(startIndex + 8,endIndex));
+      }
+      
+      System.out.print(pastPrices);
+      //Here we calculate the RSI and put it into the instance variable
       rsi = rsiCalculate(pastPrices);
       
+      // Here we call the function to calculate the EMA's and return an array
        emas = emaCalculate(pastPrices);
+       EMA8 = emas[0];
+       EMA12 = emas[1];
+       EMA20 = emas[2];
     }
     
     public float rsiCalculate(float[] pastPrices) {

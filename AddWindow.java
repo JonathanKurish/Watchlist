@@ -7,49 +7,77 @@ import java.net.*;
 
 public class AddWindow extends JDialog {
 	
-	public ArrayList<Stock> stuff = new ArrayList<Stock>(); //ER VIDST UNODVENDIG!!!
-	
-	JLabel initials, searchResult, sharePrice, alarmShare, 
-		setMACD, setMA, ema, sma, helpMA, highVolume, FILLER, rsi, rsiOver, rsiUnder;
-	JTextField initTF, alarmShareTF, emaTF, smaTF, rsiOverTF, rsiUnderTF;
+	JLabel initials, searchResult, sharePrice, alarmShare, FILLER1, FILLER2, FILLER3,
+		setMACD, ema8, ema12, ema20, sma50, sma200, helpMA, rsi, rsiOver, rsiUnder;
+	JTextField initTF, alarmShareTF, ema8TF, ema20TF, ema12TF, sma50TF, sma200TF, rsiOverTF, rsiUnderTF;
 	JButton searchShare, addStock;
-	JComboBox dropdownMA;
-	JCheckBox setAlarm, setMACDpos, setMACDneg, checkMA, setEMA, 
-		setSMA, highVolumeCB, rsiOverCB, rsiUnderCB, rsiCB;
+	JCheckBox setMACDpos, setMACDneg, goldencrossCB, deathcrossCB, highVolumeCB, rsiOverCB, rsiUnderCB;
 	
-	private String[] choicesMA = {"50", "100", "200"}; 
-	private Watchlist dd;
+	private Watchlist watchlist;
 	private Frame frame;
 	private String webData;
 	
 	public void clearAndHide() {
+		setTitle("Add Stock");
+		sharePrice.setText("Current Price: ");
+		addStock.setEnabled(false);
 		initTF.setText(null);
-        searchResult.setText("Result: ");
+        initTF.setEnabled(true);
+		searchShare.setEnabled(true);
+		setMACDpos.setEnabled(false);
+		setMACDneg.setEnabled(false);
+		goldencrossCB.setEnabled(false);
+		deathcrossCB.setEnabled(false);
+		highVolumeCB.setEnabled(false);
+		rsiOverCB.setEnabled(false);
+		rsiUnderCB.setEnabled(false);
+		alarmShareTF.setEnabled(false);
+		ema8TF.setEnabled(false);
+		ema12TF.setEnabled(false);
+		ema20TF.setEnabled(false);
+		sma50TF.setEnabled(false);
+		sma200TF.setEnabled(false);
+		rsiOverTF.setEnabled(false);
+		rsiUnderTF.setEnabled(false);
+		searchResult.setText("");
+		alarmShareTF.setText("");
+		ema8TF.setText("");
+		ema12TF.setText("");
+		ema20TF.setText("");
+		sma50TF.setText("");
+		sma200TF.setText("");
+		rsiOverTF.setText("");
+		rsiUnderTF.setText("");
+		setMACDpos.setSelected(false);
+		setMACDneg.setSelected(false);
+		goldencrossCB.setSelected(false);
+		deathcrossCB.setSelected(false);
+		highVolumeCB.setSelected(false);
+		rsiOverCB.setSelected(false);
+		rsiUnderCB.setSelected(false);
 		setVisible(false);
     }
 	
 	
-	public AddWindow(Frame frame, Watchlist parent, ArrayList<Stock> stocks) { //FORMENTLIG UNODVENDIG) {
+	public AddWindow(Frame frame, Watchlist parent) {
 		super(frame, "Add Stock", true);
-		dd = parent;
+		watchlist = parent;
 
-		for (int i = 0; i < stocks.size(); i++) { //NOK OGSA UNODVENDIGT
-			stuff.add(stocks.get(i));
-		}
 		
 		Container pane = this.getContentPane();
-		pane.setLayout(new GridLayout(9,1,2,2));
+		pane.setLayout(new BoxLayout(pane, BoxLayout.Y_AXIS));
 		
 		
 		JPanel line1 = new JPanel();
-		line1.setLayout(new GridLayout(1,3));
-		
+		line1.setLayout(new FlowLayout());
 		initials = new JLabel("Stock Initials: ");
 		line1.add(initials);
-		
-		initTF = new JTextField(20);
+		initTF = new JTextField(10);
 		line1.add(initTF);
+		//pane.add(line1);
 		
+		//JPanel line2 = new JPanel();
+		//line2.setLayout(new FlowLayout());
 		searchShare = new JButton("Search");
 		line1.add(searchShare);
 		pane.add(line1);
@@ -58,133 +86,136 @@ public class AddWindow extends JDialog {
 		searchShare.addActionListener(sc);
 		
 		
-		JPanel line2 = new JPanel();
-		line2.setLayout(new GridLayout(1,1));
-
-		searchResult = new JLabel("Result: ");
-		line2.add(searchResult);
-		pane.add(line2);
-		
-		/*
 		JPanel line3 = new JPanel();
-		line3.setLayout(new GridLayout(1,1));
-		
-		sharePrice = new JLabel("Current KURS: " + 34);
-		line3.add(sharePrice);
+		line3.setLayout(new FlowLayout());
+		searchResult = new JLabel("");
+		line3.add(searchResult);
 		pane.add(line3);
 		
 		
 		JPanel line4 = new JPanel();
-		line4.setLayout(new GridLayout(1,3));
-		
-		alarmShare = new JLabel("Set Alarm at rate: ");
-		line4.add(alarmShare);
-		
-		alarmShareTF = new JTextField();
-		line4.add(alarmShareTF);
-		
-		setAlarm = new JCheckBox();
-		line4.add(setAlarm);
+		line4.setLayout(new FlowLayout());
+		sharePrice = new JLabel("Current Price: ");
+		line4.add(sharePrice);
 		pane.add(line4);
 		
 		
 		JPanel line5 = new JPanel();
-		line5.setLayout(new GridLayout(1,3));
-		
-		setMACD = new JLabel("Alarm on MACD: ");
-		line5.add(setMACD);
-		
-		setMACDpos = new JCheckBox("Positive");
-		line5.add(setMACDpos);
-		
-		setMACDneg = new JCheckBox("Negative");
-		line5.add(setMACDneg);
+		line5.setLayout(new FlowLayout());
+		alarmShare = new JLabel("Set Alarm at Price: ");
+		line5.add(alarmShare);
+		alarmShareTF = new JTextField(10);
+		line5.add(alarmShareTF);
 		pane.add(line5);
 		
 		
 		JPanel line6 = new JPanel();
-		line6.setLayout(new GridLayout(3,3));
-		
-		setMA = new JLabel("Set Moving Average: ");
-		line6.add(setMA);
-		
-		dropdownMA = new JComboBox(choicesMA);
-		line6.add(dropdownMA);
-		
-		checkMA = new JCheckBox();
-		line6.add(checkMA);
-		
-		ema = new JLabel("Set Specific EMA: ");
-		line6.add(ema);
-		
-		emaTF = new JTextField();
-		line6.add(emaTF);
-		
-		setEMA = new JCheckBox();
-		line6.add(setEMA);
-		
-		sma = new JLabel("Set Specific SMA: ");
-		line6.add(sma);
-		
-		smaTF = new JTextField();
-		line6.add(smaTF);
-		
-		setSMA = new JCheckBox();
-		line6.add(setSMA);
+		line6.setLayout(new FlowLayout());
+		setMACDpos = new JCheckBox("MACD crossover positive");
+		line6.add(setMACDpos);
 		pane.add(line6);
 		
-		
 		JPanel line7 = new JPanel();
-		line7.setLayout(new GridLayout(1,2));
-		
-		highVolume = new JLabel("Alarm on High Volume");
-		line7.add(highVolume);
-		
-		highVolumeCB = new JCheckBox("");
-		line7.add(highVolumeCB);
+		line7.setLayout(new FlowLayout());
+		setMACDneg = new JCheckBox("MACD crossover negative");
+		line7.add(setMACDneg);
 		pane.add(line7);
 		
-		
 		JPanel line8 = new JPanel();
-		line8.setLayout(new GridLayout(3,3));
-		
-		rsi = new JLabel("RSI");
-		line8.add(rsi);
-		
-		FILLER = new JLabel("       ");
-		line8.add(FILLER);
-		
-		rsiCB = new JCheckBox("over/under");
-		line8.add(rsiCB);
-		
-		rsiOver = new JLabel("Set Over RSI: ");
-		line8.add(rsiOver);
-		
-		rsiOverTF = new JTextField();
-		line8.add(rsiOverTF);
-		
-		rsiOverCB = new JCheckBox();
-		line8.add(rsiOverCB);
-		
-		rsiUnder = new JLabel("Set Under RSI: ");
-		line8.add(rsiUnder);
-
-		rsiUnderTF = new JTextField();
-		line8.add(rsiUnderTF);
-		
-		rsiUnderCB = new JCheckBox();
-		line8.add(rsiUnderCB);
+		line8.setLayout(new FlowLayout());
+		goldencrossCB = new JCheckBox("Golden Cross");
+		line8.add(goldencrossCB);
 		pane.add(line8);
 		
-		*/
-		
-		
 		JPanel line9 = new JPanel();
-		line9.setLayout(new GridLayout(1,1));
-		
-		addStock = new JButton("Add Stock");
-		line9.add(addStock);
+		line9.setLayout(new FlowLayout());
+		deathcrossCB = new JCheckBox("Death Cross");
+		line9.add(deathcrossCB);
 		pane.add(line9);
+		
+		
+		JPanel line10 = new JPanel();
+		line10.setLayout(new FlowLayout());
+		ema8 = new JLabel("Set Specific EMA8: ");
+		line10.add(ema8);
+		ema8TF = new JTextField(10);
+		line10.add(ema8TF);
+		pane.add(line10);
+		
+		
+		JPanel line11 = new JPanel();
+		line11.setLayout(new FlowLayout());
+		ema12 = new JLabel("Set Specific EMA12: ");
+		line11.add(ema12);
+		ema12TF = new JTextField(10);
+		line11.add(ema12TF);
+		pane.add(line11);
+		
+		JPanel line12 = new JPanel();
+		line12.setLayout(new FlowLayout());
+		ema20 = new JLabel("Set Specific EMA20: ");
+		line12.add(ema20);
+		ema20TF = new JTextField(10);
+		line12.add(ema20TF);
+		pane.add(line12);
+		
+		
+		JPanel line13 = new JPanel();
+		line13.setLayout(new FlowLayout());
+		sma50 = new JLabel("Set Specific SMA50: ");
+		line13.add(sma50);
+		sma50TF = new JTextField(10);
+		line13.add(sma50TF);
+		pane.add(line13);
+		
+		JPanel line14 = new JPanel();
+		line14.setLayout(new FlowLayout());
+		sma200 = new JLabel("Set Specific SMA200: ");
+		line14.add(sma200);
+		sma200TF = new JTextField(10);
+		line14.add(sma200TF);
+		pane.add(line14);
+		
+		JPanel line15 = new JPanel();
+		line15.setLayout(new FlowLayout());
+		highVolumeCB = new JCheckBox("Alarm on high volume");
+		line15.add(highVolumeCB);
+		pane.add(line15);
+		
+		JPanel line16 = new JPanel();
+		line16.setLayout(new FlowLayout());
+		rsiOverCB = new JCheckBox("Overbought");
+		line16.add(rsiOverCB);
+		pane.add(line16);
+		
+		JPanel line17 = new JPanel();
+		line17.setLayout(new FlowLayout());
+		rsiUnderCB = new JCheckBox("Oversold");
+		line17.add(rsiUnderCB);
+		pane.add(line17);
+		
+		JPanel line18 = new JPanel();
+		line18.setLayout(new FlowLayout());
+		rsiOver = new JLabel("Set Over RSI: ");
+		line18.add(rsiOver);
+		rsiOverTF = new JTextField(10);
+		line18.add(rsiOverTF);
+		pane.add(line18);
+		
+		JPanel line19 = new JPanel();
+		line19.setLayout(new FlowLayout());
+		rsiUnder = new JLabel("Set Under RSI: ");
+		line19.add(rsiUnder);
+		rsiUnderTF = new JTextField(10);
+		line19.add(rsiUnderTF);
+		pane.add(line19);
+
+		JPanel line20 = new JPanel();
+		line20.setLayout(new FlowLayout());
+		addStock = new JButton("Add Stock");
+		addStock.setEnabled(false);
+		line20.add(addStock);
+		pane.add(line20);
 		
 		AddClass ac = new AddClass();
 		addStock.addActionListener(ac);
@@ -200,55 +231,69 @@ public class AddWindow extends JDialog {
 			try {
 				String search = initTF.getText();
 				
+				float lastPrice = watchlist.getLastPrice(search);
 				
-				if (search != "Result: Didn't find stock") {
-					initTF.setEnabled(false);
-				}
-				
-				
-				String url = "https://query.yahooapis.com/v1/public/yql?q=SELECT%20*%20FROM%20csv%20WHERE%20url%3D\"http%3A%2F%2Fdownload.finance.yahoo.com%2Fd%2Fquotes.csv%3Fs%3D" + search + 
-							 "%26f%3Dl1%26e%3D.csv\"%0A%20%20%20%20AND%20columns%3D\"lastPrice\"%3B";
-				try{
-					URL pageLocation = new URL(url);
-			
-					Scanner input = new Scanner(pageLocation.openStream());
-					String webData = input.nextLine() + "\n";
-      
-					while(input.hasNextLine()) {
-						webData +=  input.nextLine() + "\n";
-					}
-					
-				webDataTemp = webData;
-				
-				} catch(MalformedURLException e) { 
-					System.out.printf("Error");
-				}
-				
-				int startIndex = webDataTemp.indexOf("<lastPrice>");
-				int endIndex = webDataTemp.indexOf("</lastPrice>", startIndex);		
-				float lastPrice = Float.parseFloat(webDataTemp.substring(startIndex + 11,endIndex));
-
 				
 				if (lastPrice != 0.0) { 
-					searchResult.setText("Result: " + search);
+					alarmShareTF.setEnabled(true);
+					setMACDpos.setEnabled(true);
+					setMACDneg.setEnabled(true);
+					goldencrossCB.setEnabled(true);
+					deathcrossCB.setEnabled(true);
+					highVolumeCB.setEnabled(true);
+					rsiOverCB.setEnabled(true);
+					rsiUnderCB.setEnabled(true);
+					ema8TF.setEnabled(true);
+					ema12TF.setEnabled(true);
+					ema20TF.setEnabled(true);
+					sma50TF.setEnabled(true);
+					sma200TF.setEnabled(true);
+					rsiOverTF.setEnabled(true);
+					rsiUnderTF.setEnabled(true);
+					searchResult.setText(search);
+					searchResult.setHorizontalAlignment(JLabel.CENTER);
+					searchResult.setFont(new Font("Arial", Font.PLAIN, 20));
+					initTF.setEnabled(false);
+					searchShare.setEnabled(false);
+					addStock.setEnabled(true);
+					sharePrice.setText("Current Price: " + lastPrice);
 				} else {
-					searchResult.setText("Result: Didn't find stock");
+					searchResult.setFont(new Font("Arial", Font.PLAIN, 20));
+					searchResult.setText("Didn't find stock");
 				}
-			} catch (Exception ex) {}
+				
+				
+			} catch (Exception ex) {
+				searchResult.setText("Check you internet connection!");
+			}
 		}
 	}
 	
 	public class AddClass implements ActionListener {
 		public void actionPerformed(ActionEvent ac) {
 			try {
-				
 				String symbol = initTF.getText();
-				System.out.println("davs");
-				System.out.println(symbol);
-				// Stock newStock = new Stock(symbol); NOT POSSIBLE YET
-				System.out.println("halli hallo");
+				String setPrice = alarmShareTF.getText();
+				boolean MACDcrossPos = setMACDpos.isSelected();
+				boolean MACDcrossNeg = setMACDneg.isSelected();
+				boolean goldenCross = goldencrossCB.isSelected();
+				boolean deathCross = deathcrossCB.isSelected();
+				String ema8 = ema8TF.getText();
+				String ema12 = ema12TF.getText();
+				String ema20 = ema20TF.getText();
+				String sma50 = sma50TF.getText();
+				String sma200 = sma200TF.getText();
+				boolean highVolume = highVolumeCB.isSelected();
+				boolean rsiOverbought = rsiOverCB.isSelected();
+				boolean rsiOversold = rsiUnderCB.isSelected();
+				String rsiOver = rsiOverTF.getText();
+				String rsiUnder = rsiUnderTF.getText();
+				
+				
+				watchlist.alarm();
 				clearAndHide();
-				dd.updateListAdd(newStock); //den dor efter den her action
+				watchlist.createObject(symbol, setPrice, MACDcrossPos, MACDcrossNeg, goldenCross, deathCross, 
+					ema8, ema12, ema20, sma50, sma200, highVolume, rsiOverbought, rsiOversold, rsiOver, rsiUnder);
 				
 				
 			} catch (Exception ex) {}

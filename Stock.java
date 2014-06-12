@@ -2,26 +2,36 @@ import java.lang.*;
 import java.net.*;
 import java.util.*;
 import java.io.*;
+import java.text.*;
 
-public class Stock {
+public class Stock implements java.io.Serializable {
 
   //The first instance variables describes the stock itself
   public String symbol;
-  public float lastPrice, open, high, low, close, change, changeInPer, rsi, MACDfast, MACDslow, MA200, MA50, EMA8, EMA12, EMA20;
+  public double open, high, low, close, change, changeInPer, SMA200, SMA50, 
+			MACDline, MACDtrigger, MACDtriggerOld, EMA8, EMA12, EMA20, rsi, lastEMA8, 
+			lastEMA12, lastEMA20, lastEMA26, EMA26, lastPrice, rsiUnder, rsiOver;
   public int volumen, avgVolumen;  
   
-  float[] pastPrices = new float[30];
-  float[] emas = new float[3];
+  public boolean MACDstart; // This is set to TRUE if MACD line was under the trigger-line, and FALSE if it start above
+  
+  double[] pastPrices = new double[52];
   
   //These instance variables describes the target for the indicators
   
-  public float targetPrice;   // targetPrice is the price that the user wants to buy/sell at
+  public double targetPrice;   // targetPrice is the price that the user wants to buy/sell at
+  public double SMA200target, SMA50target, EMA8target, EMA12target, EMA20target;
   public boolean overbought;  // If this value is TRUE the user wants to test to see if the stock is overbought
   public boolean oversold;    // If this value is TRUE the user wants to test to see if the stock is oversold
   public boolean goldencross; // If this value is TRUE the user wants to be notified when a goldencross forms
   public boolean deathcross;  // If this value is TRUE the user wants to be notified when a deathcross forms
-  public boolean MACDcross;   // If this value is TRUE the user wants to be notified when the MACD lines crosses
+  public boolean MACDcrossPositive;   // If this value is TRUE the user wants to be notified when the MACD lines 
+  public boolean MACDcrossNegative;   // If this value is TRUE the user wants to be notified when the MACD lines crosses
   public boolean highVolume;  // If this value is TRUE the user wants to be notified when volume is high
+  public boolean targetAU; // Target above or under describes if the target price is under the current price or above. Above = TRUE, under = FALSE
+  
+  // TILFOJET AF JONATHAN
+  public boolean hasAlarm; // If this value is TRUE, then a criteria has been met
   
   public String webData;
   public String webDataTemp;
@@ -30,7 +40,7 @@ public class Stock {
     
     symbol = StockSymbol;
     
-    String date = "2014-03-20";
+    String date = "2014-01-01";
     
     String url = "https://query.yahooapis.com/v1/public/yql?q=SELECT%20*%20FROM%20yql.query.multi%20WHERE%20queries%3D%27%0A%20%20%20%20" +
 		 "SELECT%20*%20FROM%20csv%20WHERE%20url%3D%22http%3A%2F%2Fdownload.finance.yahoo.com%2Fd%2Fquotes.csv%3Fs%3D" + symbol + 
@@ -55,17 +65,26 @@ public class Stock {
     catch(MalformedURLException e) { 
       System.out.printf("Error");
     }
-      
-      int startIndex, endIndex; // Here we initialize the two int variables to be used to get the data 
+      final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+      int startIndex, endIndex, test; // Here we initialize the two int variables to be used to get the data 
+      String time;
+      test = 1;
+	  
+	  Calendar cal = Calendar.getInstance();
+		time = (sdf.format(cal.getTime()));
+		System.out.println(time);
+		int Hour = Integer.parseInt(time.substring(0,2));
+		int Min = Integer.parseInt(time.substring(3));
       
       // Here we grab the lastest price from the xml
       startIndex = webDataTemp.indexOf("<lastPrice>");
       endIndex = webDataTemp.indexOf("</lastPrice>", startIndex);
-      lastPrice = Float.parseFloat(webDataTemp.substring(startIndex + 11,endIndex));
+
+      if(Hour < 15 || (Hour == 15 && Min > 45) || Hour > 15 ) {
+
+      test = 0;
       
-      if(lastPrice == 0.00) {
-	/* Udvikle error da aktien ikke findes */
-      }
+      lastPrice = Double.parseDouble(webDataTemp.substring(startIndex + 11,endIndex));
       
       // Here we grab the open price from the xml
       startIndex = webDataTemp.indexOf("<open>");
@@ -105,157 +124,162 @@ public class Stock {
       // Here we grab the 200 Moving Average
       startIndex = webDataTemp.indexOf("<MA200>");
       endIndex = webDataTemp.indexOf("</MA200>", startIndex);
-      MA200 = Float.parseFloat(webDataTemp.substring(startIndex + 7,endIndex));
+      SMA200 = Float.parseFloat(webDataTemp.substring(startIndex + 7,endIndex));
       
       // Here we grab the 200 Moving Average
       startIndex = webDataTemp.indexOf("<MA50>");
       endIndex = webDataTemp.indexOf("</MA50>", startIndex);
-      MA50 = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
+      SMA50 = Float.parseFloat(webDataTemp.substring(startIndex + 6,endIndex));
       
-      
+      }
       // Her ligger vi de tidligere dages priser ind, 20 dages data
-      for(int i = 0; i < 30; i++) {
+	  for(int i = 0; i < 51; i++) {
 	startIndex = webDataTemp.indexOf("<Close>", endIndex);
 	endIndex = webDataTemp.indexOf("</Close>", startIndex);
-	pastPrices[i] = Float.parseFloat(webDataTemp.substring(startIndex + 7,endIndex));
+	pastPrices[i] = Double.parseDouble(webDataTemp.substring(startIndex + 7,endIndex));
       }
       
+      if(test == 1) {
+	lastPrice = pastPrices[0];
+      }
+
       //Here we calculate the RSI and put it into the instance variable
       rsi = rsiCalculate(pastPrices);
-      System.out.println(rsi);
+    //  System.out.println("RSI = "+rsi);
       // Here we call the function to calculate the EMA's and return an array
-      emas = emaCalculate(pastPrices);
-      EMA8 = emas[0];
-      EMA12 = emas[1];
-      EMA20 = emas[2];
+      emaCalculate(pastPrices);
+      macdCalculator(pastPrices);
+	  
+	  
+				System.out.println("symbol: " + symbol);
+				System.out.println("last price: " + lastPrice);
+				System.out.println("open price: " + open);
+				System.out.println("high of day: " + high);
+				System.out.println("low of day: " + low);
+				System.out.println("volume: " + volumen);
+				System.out.println("avg volume: " + avgVolumen);
+				System.out.println("change: " + change);
+				System.out.println("changeInPer: " + changeInPer);
+				System.out.println("SMA200: " + SMA200);
+				System.out.println("SMA50: " + SMA50);
+				
        
 
     }
     
-    public float rsiCalculate(float[] pastPrices) {
-      float RSI = 0;
-      float loss = 0;
-      float gain = 0;
+    public double rsiCalculate(double[] pastPrices) {
+      double RSI = 0;
+      double loss = 0;
+      double gain = 0;
 	  
       int c = 14, i = 13, counter = 1;
       
-      for(int d = 0; d < 20; d++) {
-	System.out.println(pastPrices[d]);
-      }
-      
       while(counter < 15) {
       
-	if(pastPrices[i] < pastPrices[c]) {
+	if(pastPrices[c] > pastPrices[i]) {
 	  loss = loss + (pastPrices[c] - pastPrices[i]);
 	}
 	
 	
-	if(pastPrices[i] > pastPrices[c]) {
+	if(pastPrices[c] < pastPrices[i]) {
 	  gain = gain + (pastPrices[i] - pastPrices[c]);
 	}
 	counter++;
 	c--;
 	i--;
       }
-      System.out.println(loss);
-      System.out.println(gain);
-      loss = loss/14;
-      gain = gain/14;
+   //   System.out.println(loss);
+   //   System.out.println(gain);
       
-      float todayGain = 0;
-      float todayLoss = 0;
+      loss = (loss/14);
+      gain = (gain/14);
       
-      if(lastPrice < pastPrices[0]) {
-	todayLoss = pastPrices[0] - lastPrice;
-      }
+   //   System.out.println(loss);
+   //   System.out.println(gain);
       
-      if(lastPrice > pastPrices[0]) {
-	todayGain = lastPrice - pastPrices[0];
-      }
+      double RS = (gain / loss);
       
-      float RS = gain / loss;
-      
-      System.out.println(c);
-      
-      float smooth = (((gain * 13) + todayGain) / 14) / (((loss * 13) + todayLoss) / 14);
-      
-      RSI = 100 - (100 / (1 + smooth));
+      RSI = 100 - (100 / (1 + RS));
       
       return RSI;
     }
     
-    public float[] emaCalculate(float[] pastPrices) {
-    
-      int c = 14;
-      float s8 = 0;
-	  float s12 = 0;
-	  float s20 = 0;
-	  float ema8 = 0;
-	  float ema12 = 0;
-	  float ema20 = 0;
-      float multiplier8 = 0;
-	  float multiplier12 = 0;
-	  float multiplier20 = 0;
-      float[] emas = new float[3];
+    public double[] emaCalculate(double[] pastPrices) {
+      double s8 = 0;
+      double k = 0;
+	  double s12 = 0;
+	  double s20 = 0;
+	  double ema8 = 0;
+	  double ema12 = 0;
+	  double ema20 = 0;
+      double[] emas = new double[3];
       
-      while(c > 6) {
-	s8 = s8 + pastPrices[c];
-	c--;
-      }
-      s8 = s8 / 8;
-
-      c = 0;
-
-      while(c < 12) {
-	s12 = s12 + pastPrices[19 - c];
-	c++;
-      }
-      s12 = s12 / 12;
-      c = 0;
-
-      while(c < 20) {
-	s20 = s20 + pastPrices[27 - c];
-	c++;
-      }
-      s20 = s20 / 20;
-
-      multiplier8 = (2 / (8 + 1) );
-      multiplier12 = (2 / (12 + 1));
-      multiplier20 = (2 / (20 + 1));
+      s8  = calculateMA(8,pastPrices,16);
+      s12 = calculateMA(12,pastPrices,24);
+      s20 = calculateMA(20,pastPrices,40);
       
-      ema8 = s8;
-      c = 7;
-
-      while(c >= 0) {
-	ema8 = (pastPrices[c] - ema8) * multiplier8 + ema8;
-	c--;
-	System.out.println("EMA 8 =" + ema8);
-      }
-
-      emas[0] = (lastPrice - ema8) * multiplier8 + ema8;
-
-      c = 12;
-      ema12 = s12;
+      //Here we calculate all the EMAS
+      lastEMA8 = Math.round((calculateEmaDays(8,pastPrices,0,s8)) * 100.0) / 100.0;
+      System.out.println("EMA 8 = " + EMA8);
       
-      while(c >= 0) {
-	ema12 = (pastPrices[c] - ema12) * multiplier12 + ema12;
-	c--;
-      }
+      lastEMA12 = Math.round((calculateEmaDays(12,pastPrices,0,s12)) * 100.0) / 100.0;
+      System.out.println("EMA 12 = " + EMA12);
       
-      emas[1] = (lastPrice - ema12) * multiplier12 + ema12;
-      
-      c = 0;
-      ema20 = s20;
-      
-      while(c >= 19) {
-	ema20 = (pastPrices[c] - ema20) * multiplier20 + ema20;
-	c--;
-      }
-      emas[2] = (lastPrice - ema20) * multiplier20 + ema20;
+      lastEMA20 = Math.round((calculateEmaDays(20,pastPrices,0,s20)) * 100.0) / 100.0;
+      System.out.println("EMA 20 = " + EMA20);
 
       return emas;
     }
     
+    public static double calculateEMA(double todaysPrice, double numberOfDays, double EMAYesterday) {
+	double k = 2 / (numberOfDays + 1);
+	return todaysPrice * k + EMAYesterday * (1 - k);
+    }
     
+    public double calculateMA(int days, double[] pastPrices, int index) {
+      double MA = 0;
+      
+      for(int i = index - 1; i > days - 1; i--) {
+	MA = MA + pastPrices[i];
+      }
+      
+      MA = MA/days;
+      System.out.println(MA);
+      return MA;
+    }
+    
+    public double calculateEmaDays(int days, double[] pastPrices, int to, double startMA) {
+      double EMA = 0;
+      EMA = calculateEMA(pastPrices[days-1], days, startMA);
+      
+      for(int c = days-2; c >= to; c--) {
+	EMA = calculateEMA(pastPrices[c], days, EMA);
+      }
+      return EMA;
+    }
+    
+    public void macdCalculator(double[] pastPrices) {
+    
+      double MA26 = 0;
+      double MA12 = 0;
+      double EMA12 = 0;
+      
+      MA26 = Math.round((calculateMA(26,pastPrices,52)) * 100.0 ) / 100.0;
+      MA12 = Math.round((calculateMA(12,pastPrices,24)) * 100.0 ) / 100.0;
+
+      lastEMA26 = Math.round((calculateEmaDays(26, pastPrices, 0, MA26))* 100.0 ) / 100.0;
+      EMA12 = Math.round((calculateEmaDays(12, pastPrices, 0, MA12))* 100.0 ) / 100.0;
+      System.out.println("EMA 26 = " + lastEMA26);
+      System.out.println("EMA 12 = " + EMA12);
+      
+      MACDline = Math.round((EMA12 - lastEMA26)* 100.0 ) / 100.0;
+  
+      MACDtriggerOld = Math.round((calculateEMA(MACDline,9,MACDline)) * 1000.0) / 1000.0;
+      
+      System.out.println("MACD line = " + MACDline);
+      //System.out.println("Trigger = " + MACDtrigger);
+      
+      
+    }
   
 }
